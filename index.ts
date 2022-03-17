@@ -1,4 +1,4 @@
-import DiscordJS, { Intents } from "discord.js";
+import DiscordJS, { Intents, Message } from "discord.js";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 
@@ -9,7 +9,7 @@ dotenv.config();
 const client = new DiscordJS.Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
 });
-
+//funcion para notificar el estado del bot
 client.on("ready", () => {
   console.log("Bot funcionando");
 });
@@ -18,19 +18,38 @@ client.on("messageCreate", (message) => {
   //largo del comando gamertag
   let gamertagLenght = 9;
   //separar comando del mensaje
-  let commmand = message.content.substring(0,gamertagLenght);
-  
-  if (commmand === "!gamertag") {
-    //Separar slug del mensaje
-    let playerSlug = message.content.substring(gamertagLenght+1, message.content.length);
-    getGamertag(playerSlug)
-    .then((data)=>{
+  let prefix = message.content.substring(0,1);
+  let command = message.content.substring(1,gamertagLenght);
+  command = command.toLowerCase();
+  if(prefix==="!"){
+    if (command === "gamertag") {
+
+      //Separar slug del mensaje
+      let playerSlug = message.content.substring(gamertagLenght+1, message.content.length);
+      getGamertag(playerSlug)
+      .then((data)=>{
+        message.reply({
+          content: data,
+        })
+      });
+
+    }else if(command === "help"){
       message.reply({
-        content: data,
+        content: `Comandos disponibles
+        !gamertag [slug] - Devuelve el gamertag del usuario
+        
+        `,
       })
-    });
+    }
+    else{
+      message.reply({
+        content: "No entiendo 0te",
+      })
+    }
   }
+  
 });
+//funcion para hacer funcionar el bot
 client.login(process.env.TOKEN);
 
 const urlApi = "https://api.smash.gg/gql/alpha";
