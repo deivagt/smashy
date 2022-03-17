@@ -26,17 +26,14 @@ client.on("messageCreate", (message) => {
 
       //Separar slug del mensaje
       let playerSlug = message.content.substring(gamertagLenght+1, message.content.length);
-      getGamertag(playerSlug)
-      .then((data)=>{
-        message.reply({
-          content: data,
-        })
-      });
-
+      getGamertag(message,playerSlug);
+      
+     
     }else if(command === "help"){
       message.reply({
-        content: `Comandos disponibles
-        !gamertag [slug] - Devuelve el gamertag del usuario
+        content: 
+        `Comandos disponibles: 
+          !gamertag [slug] - Devuelve el gamertag del usuario
         
         `,
       })
@@ -54,30 +51,71 @@ client.login(process.env.TOKEN);
 
 const urlApi = "https://api.smash.gg/gql/alpha";
 
-const query = `query userId($slug:String){
+
+
+  const queryTop8TournamentOneEvent = `
+  `
+
+
+
+
+const getGamertag = (message:any,playerSlug:string)=>{
+  let query = `query userId($slug:String){
     user(slug:$slug){
       player { 
         gamerTag        
       }      
     }
   }`;
-let variables = { slug: "" };
-
-const options = {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    Authorization: `Bearer ${process.env.smashggToken}`,
-  },
-  body: JSON.stringify({
-    query,
-    variables,
-  }),
-};
-
-const getGamertag = (playerSlug:string) =>
+  let variables = {
+    slug:playerSlug
+  }
+  makeFetch(query,variables)  
+  .then((res)=>{
+    let gamerTag = res.data.user.player.gamerTag
+    message.reply({
+      content: gamerTag
+    })
+     
+  });
  
+}
+
+const getTop8ByTournament = (message:any,tournametSlug:string) =>{
+  let query =
+  `
+  query entrants($slug:String ){
+    tournament(slug:$slug){
+      events{
+        standings(query:{}
+        ){
+          nodes{
+          entrant{
+            name
+          }
+            placement
+          }
+        }
+      }
+    }
+  }
+  `
+  let variables = {
+    slug:tournametSlug
+  }
+  makeFetch(query,variables)  
+  .then((res)=>{
+    let gamerTag = res.data.user.player.gamerTag
+    message.reply({
+      content: gamerTag
+    })
+     
+  });
+  ;
+}
+
+
+ const makeFetch = (query:string, variables:any)=>
   fetch(urlApi, 
     {
       method: "POST",
@@ -88,20 +126,14 @@ const getGamertag = (playerSlug:string) =>
       },
       body: JSON.stringify({
         query,
-        variables: 
-        {
-          "slug": playerSlug
-        },
+        variables,
       }),
     }
     
     )
     .then((r) => r.json())
-    .then((data) =>{ return printJson(data)});
+    .then((data) =>{ return data});
 
 
 
-const printJson = (response: any)=> {
-  let gamerTag = response.data.user.player.gamerTag;
-  return gamerTag;
-}
+
