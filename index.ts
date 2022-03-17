@@ -15,11 +15,16 @@ client.on("ready", () => {
 });
 
 client.on("messageCreate", (message) => {
-  if (message.content === "ping") {
-
-    myFunction()
+  //largo del comando gamertag
+  let gamertagLenght = 9;
+  //separar comando del mensaje
+  let commmand = message.content.substring(0,gamertagLenght);
+  
+  if (commmand === "!gamertag") {
+    //Separar slug del mensaje
+    let playerSlug = message.content.substring(gamertagLenght+1, message.content.length);
+    getGamertag(playerSlug)
     .then((data)=>{
-
       message.reply({
         content: data,
       })
@@ -37,7 +42,7 @@ const query = `query userId($slug:String){
       }      
     }
   }`;
-const variables = { slug: "2cbabf4a" };
+let variables = { slug: "" };
 
 const options = {
   method: "POST",
@@ -52,8 +57,26 @@ const options = {
   }),
 };
 
-const myFunction = () =>
-  fetch(urlApi, options)
+const getGamertag = (playerSlug:string) =>
+ 
+  fetch(urlApi, 
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${process.env.smashggToken}`,
+      },
+      body: JSON.stringify({
+        query,
+        variables: 
+        {
+          "slug": playerSlug
+        },
+      }),
+    }
+    
+    )
     .then((r) => r.json())
     .then((data) =>{ return printJson(data)});
 
@@ -61,6 +84,5 @@ const myFunction = () =>
 
 const printJson = (response: any)=> {
   let gamerTag = response.data.user.player.gamerTag;
-  console.log(response.data.user.player.gamerTag);
   return gamerTag;
 }
