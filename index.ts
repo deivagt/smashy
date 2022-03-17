@@ -6,6 +6,8 @@ const util = require('util');
 
 dotenv.config();
 
+const urlApi = "https://api.smash.gg/gql/alpha";
+
 const client = new DiscordJS.Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
 });
@@ -15,29 +17,40 @@ client.on("ready", () => {
 });
 
 client.on("messageCreate", (message) => {
-  //largo del comando gamertag
-  let gamertagLenght = 9;
+  
   //separar comando del mensaje
+  message.content = message.content.toLowerCase();
+
   let prefix = message.content.substring(0,1);
-  let command = message.content.substring(1,gamertagLenght);
-  command = command.toLowerCase();
+  
+  let command =message.content.substring(0, message.content.indexOf(' '));
+  command = command.replace('!','');
+  let parameter =message.content.substring( message.content.indexOf(' ')+1);
+
   if(prefix==="!"){
-    if (command === "gamertag") {
+   
+    if ( command=== "gamertag") {
 
       //Separar slug del mensaje
-      let playerSlug = message.content.substring(gamertagLenght+1, message.content.length);
+      let playerSlug = parameter;
       getGamertag(message,playerSlug);
       
-     
-    }else if(command === "help"){
+    }
+
+    else if(command === "top8"){
+      let cleanSlug = clearSlug(parameter);
+      cleanSlug = cleanSlug.replace(/ /g,'-');
+      let finalSlug = "tournament/"+cleanSlug;
+      getTop8ByTournament(message,finalSlug);
+    } 
+    else if(command=== "help"){
       message.reply({
         content: 
         `Comandos disponibles: 
           !gamertag [slug] - Devuelve el gamertag del usuario
-        
         `,
       })
-    }
+    } 
     else{
       message.reply({
         content: "No entiendo 0te",
@@ -48,16 +61,6 @@ client.on("messageCreate", (message) => {
 });
 //funcion para hacer funcionar el bot
 client.login(process.env.TOKEN);
-
-const urlApi = "https://api.smash.gg/gql/alpha";
-
-
-
-  const queryTop8TournamentOneEvent = `
-  `
-
-
-
 
 const getGamertag = (message:any,playerSlug:string)=>{
   let query = `query userId($slug:String){
@@ -77,6 +80,11 @@ const getGamertag = (message:any,playerSlug:string)=>{
       content: gamerTag
     })
      
+  })
+  .catch((e) => {
+    message.reply({
+      content: "Jugador no encontrado :c"
+    })
   });
  
 }
@@ -105,14 +113,26 @@ const getTop8ByTournament = (message:any,tournametSlug:string) =>{
   }
   makeFetch(query,variables)  
   .then((res)=>{
-    let gamerTag = res.data.user.player.gamerTag
+    let msg = "";
+    for(let i = 0; i <8;i++){
+     let playerData = res.data.tournament.events[0].standings.nodes[i];
+     msg +="#" +playerData.placement + " - " + playerData.entrant.name + "\n";
+    }
+
     message.reply({
-      content: gamerTag
+      content: msg
     })
      
+  })
+  .catch((e) => {
+    message.reply({
+      content: "Torneo no encontrado :c"
+    })
   });
   ;
 }
+
+
 
 
  const makeFetch = (query:string, variables:any)=>
@@ -137,3 +157,11 @@ const getTop8ByTournament = (message:any,tournametSlug:string) =>{
 
 
 
+  //Funcion para remover todos los simbolos de un string excepto numeros, letras y espacios en blanco
+const clearSlug =(tournamentSlug:string)=>{
+  
+  let cleanSlug = tournamentSlug.replace(/[^0-9a-z-A-Z ]/g,'')
+  return cleanSlug;
+
+  
+};
