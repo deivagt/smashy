@@ -6,8 +6,6 @@ import { getGamertag } from "./messageManager/getGamertag";
 import { getSwtPoints } from "./messageManager/getSwtPoints";
 import dotenv from "dotenv";
 
-const util = require('util');
-
 
 dotenv.config();
 
@@ -19,6 +17,7 @@ const client = new DiscordJS.Client({
 });
 //funcion para notificar el estado del bot
 client.on("ready", () => {
+  
   console.log("Bot funcionando");
 });
 //Recibir y procesar mensaje
@@ -52,7 +51,7 @@ let newMessage = processMessage(message);
      
       getUpcomingTournament(message,newMessage.parameter);
     } 
-    else if(newMessage.command === "swtpoints"){
+    else if(newMessage.command === "swtpts"){
       getSwtPoints(message,newMessage.parameter);
     } 
     else if(newMessage.command === "swttop"){
@@ -64,10 +63,11 @@ let newMessage = processMessage(message);
       message.reply({
         content: 
         `Comandos disponibles: 
-          !gamertag [slug] - Devuelve el gamertag del usuario
-          !top8 [tourneyName] - Devuelve el top 8 del torneo indicado
-          !upcoming [countryCode] - Devuelve proximos torneos del pais indicado
-          !swttop - Devuelve el top 20 del Smash World Tournament actual
+!gamertag [slug] - Devuelve el gamertag del usuario
+!top8 [tourneyName] - Devuelve el top 8 del torneo indicado
+!upcoming [countryCode] - Devuelve proximos torneos del pais indicado
+!swttop - Devuelve el top 20 del Smash World Tournament actual
+!swtpts [slug] - Devuelve los puntos de un jugador del Smash World Tournament actual
         `,
       })
     } 
@@ -111,6 +111,8 @@ const clearSlug =(tournamentSlug:string)=>{
 
   
 };
+
+
 
 
 
