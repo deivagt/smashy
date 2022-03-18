@@ -1,5 +1,9 @@
 import DiscordJS, { Intents, Message } from "discord.js";
-import fetch from "node-fetch";
+import{ getTop20SWT} from "./messageManager/getTop20SWT";
+import {getTop8ByTournament} from"./messageManager/getTop8ByTournament"
+import { getUpcomingTournament } from "./messageManager/getUpcomingTournament";
+import { getGamertag } from "./messageManager/getGamertag";
+import { getSwtPoints } from "./messageManager/getSwtPoints";
 import dotenv from "dotenv";
 
 const util = require('util');
@@ -7,8 +11,8 @@ const util = require('util');
 
 dotenv.config();
 
-const urlApi = "https://api.smash.gg/gql/alpha";
-const smashGameCode = 1386;
+
+
 
 const client = new DiscordJS.Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
@@ -17,10 +21,66 @@ const client = new DiscordJS.Client({
 client.on("ready", () => {
   console.log("Bot funcionando");
 });
+//Recibir y procesar mensaje
+client.on("messageCreate", (message) => messageProcess(message));
+//funcion para hacer funcionar el bot
+client.login(process.env.TOKEN);
 
-client.on("messageCreate", (message) => {
-  
+
+const messageProcess = (message:any)=>{
   //separar comando del mensaje
+  
+let newMessage = processMessage(message);
+
+  if(newMessage.prefix==="!"){
+   //console.log(command);
+    if ( newMessage.command=== "gamertag") {
+
+      //Separar slug del mensaje
+      let playerSlug = newMessage.parameter;
+      getGamertag(message,playerSlug);
+      
+    }
+
+    else if(newMessage.command === "top8"){
+      let cleanSlug = clearSlug(newMessage.parameter);
+      cleanSlug = cleanSlug.replace(/ /g,'-');
+      cleanSlug = "tournament/"+cleanSlug;
+      getTop8ByTournament(message,cleanSlug);
+    } 
+    else if(newMessage.command === "upcoming"){
+     
+      getUpcomingTournament(message,newMessage.parameter);
+    } 
+    else if(newMessage.command === "swtpoints"){
+      getSwtPoints(message,newMessage.parameter);
+    } 
+    else if(newMessage.command === "swttop"){
+      newMessage.parameter = "league/swt-ultimate-2022";
+     getTop20SWT(message,newMessage.parameter);
+    } 
+    
+    else if(newMessage.command=== "help"){
+      message.reply({
+        content: 
+        `Comandos disponibles: 
+          !gamertag [slug] - Devuelve el gamertag del usuario
+          !top8 [tourneyName] - Devuelve el top 8 del torneo indicado
+          !upcoming [countryCode] - Devuelve proximos torneos del pais indicado
+          !swttop - Devuelve el top 20 del Smash World Tournament actual
+        `,
+      })
+    } 
+    else{
+      message.reply({
+        content: "No entiendo 0te",
+      })
+    }
+  }
+};
+
+const processMessage = (message:any)=>
+{
   message.content = message.content.toLowerCase();
 
   let prefix = message.content.substring(0,1);
@@ -34,193 +94,14 @@ client.on("messageCreate", (message) => {
     command = message.content;
     command = command.replace('!','');
   }
-  
 
-  if(prefix==="!"){
-   console.log(command);
-    if ( command=== "gamertag") {
-
-      //Separar slug del mensaje
-      let playerSlug = parameter;
-      getGamertag(message,playerSlug);
-      
-    }
-
-    else if(command === "top8"){
-      let cleanSlug = clearSlug(parameter);
-      cleanSlug = cleanSlug.replace(/ /g,'-');
-      let finalSlug = "tournament/"+cleanSlug;
-      getTop8ByTournament(message,finalSlug);
-    } 
-    else if(command === "upcoming"){
-     
-      getUpcomingTournament(message,parameter);
-    } 
-    else if(command=== "help"){
-      message.reply({
-        content: 
-        `Comandos disponibles: 
-          !gamertag [slug] - Devuelve el gamertag del usuario
-          !top8 [slugTorneo] - Devuelve el top 8 del torneo indicado
-          !upcoming [countryCode] - Devuelve proximos torneos del pais indicado
-        `,
-      })
-    } 
-    else{
-      message.reply({
-        content: "No entiendo 0te",
-      })
-    }
+  let newMessage = {
+    prefix : prefix,
+    command:command,
+    parameter:parameter
   }
-  
-});
-//funcion para hacer funcionar el bot
-client.login(process.env.TOKEN);
-
-const getGamertag = (message:any,playerSlug:string)=>{
-  let query = `query userId($slug:String){
-    user(slug:$slug){
-      player { 
-        gamerTag        
-      }      
-    }
-  }`;
-  let variables = {
-    slug:playerSlug
-  }
-  makeFetch(query,variables)  
-  .then((res)=>{
-    let gamerTag = res.data.user.player.gamerTag
-    message.reply({
-      content: gamerTag
-    })
-     
-  })
-  .catch((e) => {
-    message.reply({
-      content: "Jugador no encontrado :c"
-    })
-  });
- 
-}
-
-const getUpcomingTournament = (message:any,countryCode:string)=>{
-  let query = `query TournamentsByVideogame( $videogameId: ID, $countryCode: String) {
-    tournaments(query: {
-      perPage: 10
-      page: 1
-      sortBy: "state asc"
-      filter: {
-        countryCode: $countryCode
-        upcoming: true
-        videogameIds: [
-          $videogameId
-        ]
-      }
-    }) {
-      nodes {
-        name    
-      }
-    }
-  }`;
-  countryCode = countryCode.toUpperCase();
-  let variables = {
-    videogameId: smashGameCode,
-    countryCode:countryCode
-  };
-  makeFetch(query,variables)  
-  .then((res)=>{
-
-    let msg = "";
-    for(let i = 0; i <11;i++){
-     let tourneyData = res.data.tournaments.nodes[i];
-     if(tourneyData === undefined){
-      continue;
-     }
-     msg +="#" +(i+1) + " - " + tourneyData.name + "\n";
-    }
-
-    message.reply({
-      content: msg
-    });
-    
-     
-  })
-  .catch((e) => {
-    message.reply({
-      content: "No se han encontrado torneos :c"
-    })
-  });
- 
-}
-
-const getTop8ByTournament = (message:any,tournametSlug:string) =>{
-  let query =
-  `query entrants($slug:String ){
-    tournament(slug:$slug){
-      events{
-        standings(query:{}
-        ){
-          nodes{
-          entrant{
-            name
-          }
-            placement
-          }
-        }
-      }
-    }
-  }`
-  ;
-  
-  let variables = {
-    slug:tournametSlug
-  };
-  makeFetch(query,variables)  
-  .then((res)=>{
-    let msg = "";
-    for(let i = 0; i <8;i++){
-     let playerData = res.data.tournament.events[0].standings.nodes[i];
-     msg +="#" +playerData.placement + " - " + playerData.entrant.name + "\n";
-    }
-
-    message.reply({
-      content: msg
-    })
-     
-  })
-  .catch((e) => {
-    message.reply({
-      content: "Torneo no encontrado :c"
-    })
-  });
-  ;
-}
-
-
-
-
- const makeFetch = (query:string, variables:any)=>
-  fetch(urlApi, 
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${process.env.smashggToken}`,
-      },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
-    }
-    
-    )
-    .then((r) => r.json())
-    .then((data) =>{ return data});
-
-
-
+  return newMessage;
+};
 
   //Funcion para remover todos los simbolos de un string excepto numeros, letras y espacios en blanco
 const clearSlug =(tournamentSlug:string)=>{
@@ -230,3 +111,6 @@ const clearSlug =(tournamentSlug:string)=>{
 
   
 };
+
+
+
