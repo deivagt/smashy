@@ -8,6 +8,11 @@ const getTop8ByTournament = async(interaction) =>{
           standings(query:{}
           ){
             nodes{
+              player{
+                user{
+                  slug
+                }
+              }
             entrant{
               name
             }
@@ -36,18 +41,18 @@ const getTop8ByTournament = async(interaction) =>{
           msg = "";
          primero =  false;
          }
-          msg +="#" +playerData.placement + " - " + playerData.entrant.name + "\n";
+          msg +="#" +playerData.placement + " - " + playerData.entrant.name + " \t[ Slug: "+playerData.player.user.slug+"]\n";
       }
       
       }
   
-      interaction.reply({
+      interaction.editReply({
         content: msg
       })
        
     })
     .catch((e) => {
-      interaction.reply({
+      interaction.editReply({
         content: "Torneo no encontrado :c"
       })
     });
@@ -79,6 +84,7 @@ const getTop8ByTournament = async(interaction) =>{
   module.exports = {
     data: data,
     async execute(interaction) {
+      await interaction.reply("Buscando...");
       await getTop8ByTournament(interaction);
     },
   };

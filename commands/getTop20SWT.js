@@ -10,6 +10,11 @@ const getTop20SWT = async(interaction ) =>
         standings(query:{}
         ){
           nodes{
+            player{
+              user{
+                slug
+              }
+            }
             entrant{
               name
             }            
@@ -35,7 +40,7 @@ const getTop20SWT = async(interaction ) =>
          msg = "";
         primero =  false;
         }
-      msg +="#" +playerData.placement +  " - Pts. "+ playerData.totalPoints+ " - " + playerData.entrant.name +"\n";
+      msg +="#" +playerData.placement +  " - Pts. "+ playerData.totalPoints+ " - " + playerData.entrant.name+ " \t[ Slug: "+playerData.player.user.slug+"]\n";
      }
      
     }
