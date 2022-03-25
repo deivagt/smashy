@@ -1,11 +1,10 @@
 const util = require('util');
-import { makeFetch } from "./makeFetch";
-let swtLocalPlayersData: { [index: string]: any } = {
-    players: [],
-    //lastQuery
-
+const makeFetch=require("../messageManager/makeFetch");
+const { SlashCommandBuilder } = require('@discordjs/builders');
+let swtLocalPlayersData = {
+    players: []
 }
-const getSwtPoints = async (message: any, slug: string) => {
+const getSwtPoints = async (interaction) => {
 
     let query =
 `query entrantsAllSWT($slug:String, $page:Int ){
@@ -57,10 +56,7 @@ do {
         .then((res) => {
             let allPlayers = res.data.league.standings.nodes;
 
-            //console.log(allPlayers[0]);
-
             if (allPlayers[0] === undefined) {
-                console.log("y nos salimos");
                 continueFetch = false;
             }
             for (let i = 0; i < 150; i++) {
@@ -68,7 +64,7 @@ do {
                 if (playerData === undefined) {
 
                 } else {
-                    let newPlayer: any = 'player' + (desfase + i);
+                    let newPlayer = 'player' + (desfase + i);
                     swtLocalPlayersData.players[newPlayer] = playerData;
                 }
             }
@@ -83,36 +79,40 @@ do {
 
 } while (continueFetch);
 
+   
+    let slug = "user/" + interaction.options.getString('slug');
 
-    slug = "user/" + slug;    
-
-    //console.log(util.inspect(swtLocalPlayersData, false, null, true /* enable colors */));
     let response = "No hay data disponible";
     let resState = false;
-    //console.log(swtLocalPlayersData);
+
     for (let i in swtLocalPlayersData.players) {
         let playerData = swtLocalPlayersData.players[i];
-        if (playerData.player.user.slug == slug) {
+        //console.log(playerData)
+        if (playerData.player.user !== null && playerData.player.user.slug == slug) {
             response =
 `
 Jugador: ${playerData.entrant.name}
 Posicion: ${playerData.placement}
 Puntuacion: ${playerData.totalPoints}
 `;
+
     resState = true;
         }
     }
+
+   
     if(resState){
-        message.reply({
-            content: response
-        })
+      
+        interaction.editReply({
+          content: response
+      });
     }else{
-        getPlayerData(message,slug);
+        getPlayerData(interaction);
     }
     
 };
 
-const getPlayerData = (message:any,playerSlug:string)=>{
+const getPlayerData = async (interaction)=>{
     let query = `query userId($slug:String){
       user(slug:$slug){
         player { 
@@ -122,9 +122,9 @@ const getPlayerData = (message:any,playerSlug:string)=>{
       }
     }`;
     let variables = {
-      slug:playerSlug
+      slug:interaction.options.getString('slug')
     }
-    makeFetch(query,variables)  
+    await makeFetch(query,variables)  
     .then((res)=>{
       let playerData = res.data.user.player
       let msg =
@@ -132,19 +132,36 @@ const getPlayerData = (message:any,playerSlug:string)=>{
 Jugador:  ${playerData.gamerTag}
 Posicion: ?
 Puntuacion: 0
-`
-;
-      message.reply({
+`;
+interaction.editReply({
         content: msg
       })
        
     })
     .catch((e) => {
-      message.reply({
+      interaction.editReply({
         content: "Jugador no encontrado :c"
-      })
     });
-   
+      
+    });   
   }
 
-export { getSwtPoints };
+  const data =  new SlashCommandBuilder()
+  .setName('swtpts')
+  .setDescription('Obten tus puntos del Smash World Tour!')
+  .addStringOption(option =>
+    option.setName('slug')
+      .setDescription('slug del jugador')
+      .setRequired(true));
+
+
+  module.exports = {
+    data: data,
+    async execute(interaction) {
+
+      await interaction.reply('Buscando...');
+      await getSwtPoints(interaction);
+
+      
+    },
+  };

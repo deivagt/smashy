@@ -1,6 +1,6 @@
-import fetch from "node-fetch";
+const fetch = require("node-fetch");
 const urlApi = "https://api.smash.gg/gql/alpha";
-const makeFetch = (query:string, variables:any)=>
+const makeFetch = async(query, variables)=>
 fetch(urlApi, 
   {
     method: "POST",
@@ -19,4 +19,4 @@ fetch(urlApi,
   .then((r) => r.json())
   .then((data) =>{ return data});
 
-  export {makeFetch};
+  module.exports= makeFetch;
